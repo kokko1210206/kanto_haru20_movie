@@ -1,0 +1,38 @@
+<launch>
+    <rosparam file="$(find kantoharu20_3wheel)/param/logitech_f710_joy_assign.yaml" command="load" />
+
+    <arg name="use_joy" value="true" />
+    <!-- base controller -->
+    <node pkg="base_controller_haru20" type="base_controller" name="base_ctrl" output="screen">
+        <param name="motor_max_acc" value="50.0" />
+        <param name="motor_max_vel" value="80.0" />
+        <param name="invert_x" value="false" />
+        <param name="invert_y" value="false" />
+        <param name="invert_z" value="false" />
+        <remap from="motor0_cmd_vel" to="base/motor0_cmd_vel" />
+        <remap from="motor1_cmd_vel" to="base/motor1_cmd_vel" />
+        <remap from="motor2_cmd_vel" to="base/motor2_cmd_vel" />
+    </node>
+    
+    <!-- joy teleop -->
+    <node pkg="base_controller_haru20" type="base_teleop_joy" name="base_teleop_joy" />
+    
+    <!-- joy node -->
+    <node respawn="true" pkg="joy" type="joy_node" name="joy_node" >
+        <param name="dev" type="string" value="/dev/input/js0" />
+        <param name="deadzone" value="0.12" />
+    </node>
+    
+    <node pkg="kantoharu20_3wheel" type="haru20_movie_main" name="main" output="screen" />
+    <!-- shutdown controller -->
+    <node pkg="base_controller_haru20" type="shutdown_controller_joy" name="shutdown_ctrl" />
+    
+    <node pkg="kantoharu20_3wheel" type="haru20_movie_can" name="mr1_can" />
+    
+    <!-- usb_can -->
+    <node pkg="kantoharu20_3wheel" type="usb_can_node_20" name="usb_can_node_20" respawn="true" output="screen">
+        <param name="port" value="/dev/ttyACM0" />
+    </node>
+    <!-- odm_publisher-->
+    <node pkg="base_controller_haru20" type="odom_publisher" name="odom_publisher" />
+</launch>
