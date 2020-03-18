@@ -149,7 +149,7 @@ private:
     static constexpr uint16_t id_ft_1_motor_cmd_vel     = (id_ft_1_motor_cmd_en + 1);
     static constexpr uint16_t id_ft_1_motor_status      = (id_ft_1_motor_cmd_en + 2);
 
-    static constexpr uint16_t id_ft_2_motor_cmd_en      = 0x52c;
+    static constexpr uint16_t id_ft_2_motor_cmd_en      = 0x510;
     static constexpr uint16_t id_ft_2_motor_cmd_vel     = (id_ft_2_motor_cmd_en + 1);
     static constexpr uint16_t id_ft_2_motor_status      = (id_ft_2_motor_cmd_en + 2);
 
@@ -176,9 +176,9 @@ Mr1CanNode::Mr1CanNode(void)
     _can_rx_sub				    = _nh.subscribe<can_msgs::CanFrame>("can_rx", 10, &Mr1CanNode::canRxCallback, this);
 
     _base_status_pub		    	    = _nh.advertise<std_msgs::UInt16>("base/status", 10);
-    _base_odom_x_pub                        = _nh.advertise<std_msgs::Float64>("base/odom/x", 10);
-    _base_odom_y_pub                        = _nh.advertise<std_msgs::Float64>("base/odom/y", 10);
-    _base_odom_yaw_pub                      = _nh.advertise<std_msgs::Float64>("base/odom/yaw", 10);
+    _base_odom_x_pub                        = _nh.advertise<std_msgs::Float32>("base/odom/x", 10);
+    _base_odom_y_pub                        = _nh.advertise<std_msgs::Float32>("base/odom/y", 10);
+    _base_odom_yaw_pub                      = _nh.advertise<std_msgs::Float32>("base/odom/yaw", 10);
     _base_conf_pub			    = _nh.advertise<std_msgs::UInt8>("base/conf", 10);
 
     _ft_0_motor_status_pub      	    = _nh.advertise<std_msgs::UInt8>("motor_status", 10);
@@ -286,9 +286,9 @@ void Mr1CanNode::pc_sh_motorCmdPosCallback(const std_msgs::Float32::ConstPtr& ms
 void Mr1CanNode::canRxCallback(const can_msgs::CanFrame::ConstPtr &msg)
 {
     std_msgs::UInt16 _base_status_msg;
-    std_msgs::Float64 _base_odom_x_msg;
-    std_msgs::Float64 _base_odom_y_msg;
-    std_msgs::Float64 _base_odom_yaw_msg;
+    std_msgs::Float32 _base_odom_x_msg;
+    std_msgs::Float32 _base_odom_y_msg;
+    std_msgs::Float32 _base_odom_yaw_msg;
     std_msgs::UInt8  _base_conf_msg;
     std_msgs::UInt8  _ft_0_motor_status_msg;
     std_msgs::UInt8  _ft_1_motor_status_msg;
