@@ -207,11 +207,17 @@ include_directories(
 add_executable(haru20_b_joy_main src/haru20_b_joy_main.cpp)
 target_link_libraries(haru20_b_joy_main ${catkin_LIBRARIES})
 
+add_executable(odom_listener src/odom_listener.cpp)
+target_link_libraries(odom_listener ${catkin_LIBRARIES})
+
 add_executable(haru20_movie_main src/haru20_movie_main.cpp)
 target_link_libraries(haru20_movie_main ${catkin_LIBRARIES})
 
 add_executable(spring_20_semiauto src/spring_20_semiauto.cpp)
 target_link_libraries(spring_20_semiauto ${catkin_LIBRARIES})
+
+add_executable(odom_transform src/odom_transform.cpp)
+target_link_libraries(odom_transform ${catkin_LIBRARIES})
 
 add_executable(usb_can_node_20 src/usb_can_node_19.cpp)
 target_link_libraries(usb_can_node_20 ${catkin_LIBRARIES})

@@ -36,6 +36,8 @@
     </node>
     <!-- odm_publisher-->
     <node pkg="base_controller_haru20" type="odom_publisher" name="odom_publisher" />
-    <node pkg="kantoharu20_3wheel" type="odom_transform" name="kantoharu20_3wheel"/>
+    <node pkg="kantoharu20_3wheel" type="odom_transform" name="odom_transform"/>
     <node pkg="kantoharu20_3wheel" type="odom_listener" name="odom_listener"/>
+    <!--semiauto-->
+    <node pkg="kantoharu20_3wheel" type="spring_20_semiauto" name="spring_20_semiauto" output="screen" />
 </launch>
