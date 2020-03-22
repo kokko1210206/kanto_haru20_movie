@@ -39,6 +39,8 @@ private:
     float y;
     float x_old;
     float y_old;
+    float x_begin;
+    float y_begin;
     std::vector<float> vd; //target velocity [m/s] 
     std::vector<double> xd; //target x coodinate [m]
     std::vector<double> yd; //target y coodinate [m]
@@ -86,6 +88,8 @@ Sp_auto_node::Sp_auto_node()
     time_count= 0;
     x_or_y.push_back((int)go_status::disable);
     this->timer = nh_.createTimer(ros::Duration(0.01),&Sp_auto_node::pid_start,this);
+    x_old = 0.0;
+    y_old = 0.0;
 }
 
 void Sp_auto_node::reset(void)
@@ -108,6 +112,10 @@ void Sp_auto_node::reset(void)
     go_ki.clear();//並進方向の積分ゲイン
     goal_flag = 0;
     time_count = 0;
+    u1 = 0;
+    u2 = 0;
+    v1 = 0;
+    ROS_INFO("reset");
 }    
 
 
@@ -145,98 +153,114 @@ void Sp_auto_node::go_y_set(float yd,float vd, float xr,float kp,float ki,float 
  
 void Sp_auto_node::pid_start(const ros::TimerEvent&)
 {
-if(this->x_or_y.at(goal_flag) == (int)go_status::disable){}
+    if(this->x_or_y.at(goal_flag) == (int)go_status::disable){ROS_INFO("%ld",x_or_y.size());}
+    else{
+    ROS_INFO("count start");
 
-else{source_pose.header.frame_id="map";
+    source_pose.header.frame_id="map";
     source_pose.header.stamp=ros::Time(0);
     source_pose.pose.orientation.w=1.0;
     std::string target_frame="base_link";
 
-    if(time_count == 0){time_count++;
+    if(time_count == 0){
+    ROS_INFO("enable");
+    time_count++;
     try{
-      ln.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time(0), ros::Duration(0.05));
+      ln.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time::now(), ros::Duration(0.1));
       ln.transformPose(target_frame, source_pose, target_pose);
 
-      ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f",target_pose.pose.position.x,target_pose.pose.position.y,target_pose.pose.position.z);
+      ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f,%d",target_pose.pose.position.x,target_pose.pose.position.y,target_pose.pose.position.z,target_pose.header.stamp.nsec);
     }
     catch(...){
       ROS_INFO("tf error");
     }
+    x_begin = target_pose.pose.position.x;
+    y_begin = target_pose.pose.position.y;
+    x_old = x_begin;
+    y_old = y_begin;
     time_old = target_pose.header.stamp.sec*1000.0 + target_pose.header.stamp.nsec/1000000.0;}
-
     else if (time_count > 0){
-    
+    ROS_INFO("OK");
     try{
-      ln.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time(0), ros::Duration(0.05));
+      ln.waitForTransform(source_pose.header.frame_id, target_frame, ros::Time::now(), ros::Duration(0.1));
       ln.transformPose(target_frame, source_pose, target_pose);
 
-      ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f",target_pose.pose.position.x,target_pose.pose.position.y,target_pose.pose.position.z);
+      ROS_INFO("x:%+5.2f, y:%+5.2f,z:%+5.2f,%d",target_pose.pose.position.x,target_pose.pose.position.y,target_pose.pose.position.z,target_pose.header.stamp.nsec);
     }
     catch(...){
       ROS_INFO("tf error");
     }
-
+    ROS_INFO("yes");
     geometry_msgs::Twist twist;
     x = target_pose.pose.position.x;
     y = target_pose.pose.position.y;
+    ROS_INFO("position OK");
     time_new = target_pose.header.stamp.sec*1000.0 + target_pose.header.stamp.nsec/1000000.0;
     dt = time_new - time_old;
+   
     v1 = sqrt(pow(x - x_old,2)+pow(y - y_old,2))/double(dt)*1000.0;
+   
     time_old = time_new;
+    
     x_old = x;
+   
     y_old = y;
-    v1i = v1i + (vd.at(goal_flag - 1) - v1)*double(dt)/1000.0;  
-    u1 =go_kp.at(goal_flag -1)*(vd.at(goal_flag) - v1)+ go_ki.at(goal_flag -1)*v1i;    //並進方向速度入力(PI control)
-    e = (xr.at(goal_flag - 1) - x);
+   
+    v1i = v1i + (vd.at(goal_flag - 1) - v1)*double(dt)/1000.0;
+    
+    ROS_INFO("%f,%f,%f,%f,%f",go_kp.at(goal_flag -1),vd.at(goal_flag - 1),go_ki.at(goal_flag - 1),v1,v1i);
+    
+    u1 =go_kp.at(goal_flag -1)*(vd.at(goal_flag - 1) - v1) + go_ki.at(goal_flag - 1)*v1i;
 
+    ROS_INFO("%f,%f",go_kp.at(goal_flag -1),go_ki.at(goal_flag - 1));
+    e = (yr.at(goal_flag - 1) - y); 
+    
 
     if(this->x_or_y.at(goal_flag) == (int)go_status::y_axis_go )   
-    {e = (yr.at(goal_flag - 1) - y);}
+    {e = (xr.at(goal_flag - 1) - x);}
     ei = ei + e*double(dt)/1000.0;   
-    ed = (e - e0.at(goal_flag -1))/double(dt)*1000.0;   
-    u2 = kp.at(goal_flag -1)*e + ki.at(goal_flag -1)*ei + kd.at(goal_flag -1)*ed;     //旋回方向速度入力(PID control)   
+    ed = (e - e0.at(goal_flag -1))/double(dt)*1000.0;
+
+    u2 = kp.at(goal_flag -1)*e+ ki.at(goal_flag -1)*ei + kd.at(goal_flag -1)*ed;    //旋回方向速度入力(PID control) 
+
+    ROS_INFO("%f,%f",u2,u1);
+
     e0.at(goal_flag -1) = e;
 
-
-if(this->x_or_y.at(goal_flag) == (int)go_status::x_axis_go){      
-    if(x > xd.at(goal_flag - 1)){
+    if(this->x_or_y.at(goal_flag) == (int)go_status::x_axis_go){      
+        if(((x > xd.at(goal_flag - 1)) && (x_begin < xd.at(goal_flag - 1))) || ((x < xd.at(goal_flag - 1)) && (x_begin > xd.at(goal_flag - 1)))){
         u1 = 0;
         u2 = 0;
         goal_flag++;
+        }
+        
     }
-}
-else{
-    if(y > yd.at(goal_flag - 1)){
+    else{
+        if(((y > yd.at(goal_flag - 1)) && (y_begin < yd.at(goal_flag - 1))) || ((y < yd.at(goal_flag - 1)) && (y_begin > yd.at(goal_flag - 1)))){
         u1 = 0;
         u2 = 0;
         goal_flag++;
+        }
     }
-}
 
 
-if(this->x_or_y.at(goal_flag) == (int)go_status::x_axis_go){
-    twist.linear.x = u1;
-    twist.linear.y = 0;}
-else{
-     twist.linear.x = 0;
-     twist.linear.y = u1;}
-    twist.angular.z = u2;
-
-
-if(this->v1 == 4.4){
-      twist.linear.x = 0;
-      twist.linear.y = 0;
-    twist.angular.z = 0;
-    this->reset();
-}
-
-if(x_or_y.size() < goal_flag){
-this->reset();
-}
-
-
-
+    if(this->x_or_y.at(goal_flag) == (int)go_status::x_axis_go){
+        twist.linear.x = u1;
+        twist.linear.y = 0;
+        }
+    else{
+        twist.linear.x = 0;
+        twist.linear.y = u1;}
+        twist.angular.z = u2;
     ROS_INFO("x,y,yr,v1,dt,%f,%f, %lf,%f,%lf",x,y,yr.at(goal_flag - 1),v1,dt);
+
+    if((u1 > 1.5) || (u1 < -1.5) || ((int)x_or_y.size() < goal_flag)){       
+        this->reset();
+    }
+
+
+
+    
     _vel_pub.publish(twist);}
 
 
@@ -255,17 +279,23 @@ bool _ButtonA_b = joy->buttons[ButtonA];
 bool _ButtonLB_b = joy->buttons[ButtonLB];
 bool _ButtonRB_b = joy->buttons[ButtonRB];
 
-if (_ButtonA_b && !ButtonA_b){
+if (_ButtonA_b && _ButtonLB_b){
+    ROS_INFO("auto set");
+    this->go_x_set(2.360,-0.1,-0.2,5.0,0.0,8.0,0.3,0.5);
+    this->go_y_set(-2.620,-0.1,2.360,5.0,0.0,8.0,0.3,0.5);
+    goal_flag++;}
+         
+ButtonA_b = _ButtonA_b;
+ButtonLB_b = _ButtonLB_b;
+ButtonRB_b = _ButtonRB_b;
 
-    if (_ButtonLB_b_last - ButtonLB_b == 1){
-    this -> go_x_set(3.0,1.5,0,5,0,8,8,5);
-    
-     }
-_ButtonLB_b_last = _ButtonLB_b;
-_ButtonRB_b_last = _ButtonRB_b;
+
 
 }
-}
+
+
+
+
 
 int main(int argc, char** argv)
 {
