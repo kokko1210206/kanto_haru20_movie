@@ -1,2 +1,0 @@
-# kanto_haru20_movie
-関東春ロボで用いるkanto_haru20のビデオ撮影ver
